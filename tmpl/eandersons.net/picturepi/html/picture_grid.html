@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <h1>{{.Name}}</h1>
+    {{range .Pictures}}
+    <a href="/images/{{.RawFileName}}"><img src="/images/{{.PreviewFileName}}" width="160" height="120"></a>
+    {{end}}
+  </body>
+</html>

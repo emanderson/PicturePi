@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 	"net/http"
 	"log"
 	"fmt"
@@ -22,19 +23,14 @@ type PictureDirectory struct {
 	Pictures []Picture
 }
 
+var templateDir = flag.String("templatePath", "tmpl/eandersons.net/picturepi/", "directory where template files are stored")
+
 func picpage(path string, w io.Writer) {
-	const page = `<!DOCTYPE html>
-<html>
-<head>
-</head>
-<body>
-<h1>{{.Name}}</h1>
-{{range .Pictures}}
-<a href="/images/{{.RawFileName}}"><img src="/images/{{.PreviewFileName}}" width="160" height="120"></a>
-{{end}}
-</body>
-</html>
-`
+	page, err := ioutil.ReadFile(*templateDir + "html/picture_grid.html")
+	if err != nil {
+		log.Fatal("Couldn't open template file", err)
+	}
+
 	dir, _ := os.Open(path)
 	picFileNames, _ := dir.Readdirnames(0)
 	sort.Strings(picFileNames)
@@ -48,7 +44,7 @@ func picpage(path string, w io.Writer) {
 	picDir := PictureDirectory{dir.Name(), pictures}
 	picDir = picDir
 
-	t := template.Must(template.New("page").Parse(page))
+	t := template.Must(template.New("page").Parse(string(page)))
 	t.Execute(w, picDir)
 }
 
@@ -59,6 +55,7 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
 func main() {
 	flag.Parse()
 	fmt.Println(flag.Arg(0))
+	fmt.Println(*templateDir)
 	http.HandleFunc("/", HelloServer)
 	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir(flag.Arg(0)))))
 	err := http.ListenAndServe(":8080", nil)
