@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"log"
 	"fmt"
@@ -26,9 +25,12 @@ type PictureDirectory struct {
 var templateDir = flag.String("templatePath", "tmpl/eandersons.net/picturepi/", "directory where template files are stored")
 
 func picpage(path string, w io.Writer) {
-	page, err := ioutil.ReadFile(*templateDir + "html/picture_grid.html")
+	templates, err := template.ParseGlob(*templateDir + "html/*.html")
 	if err != nil {
-		log.Fatal("Couldn't open template file", err)
+		log.Fatal("Error loading templates: ", err)
+	}
+	for _, t := range templates.Templates() {
+		fmt.Println(t.Name())
 	}
 
 	dir, _ := os.Open(path)
@@ -44,7 +46,7 @@ func picpage(path string, w io.Writer) {
 	picDir := PictureDirectory{dir.Name(), pictures}
 	picDir = picDir
 
-	t := template.Must(template.New("page").Parse(string(page)))
+	t := templates.Lookup("picture_grid.html")
 	t.Execute(w, picDir)
 }
 
