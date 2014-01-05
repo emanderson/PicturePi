@@ -12,9 +12,21 @@ import (
 	"html/template"
 )
 
+const ImagePath = "/images/";
+const ClosurePath = "/closure-library/";
+const StaticPath = "/static/";
+
 type Picture struct {
 	RawFileName string
 	PreviewFileName string
+}
+
+func (p *Picture) RawFileURL() string {
+	return ImagePath + p.RawFileName;
+}
+
+func (p *Picture) PreviewFileURL() string {
+	return ImagePath + p.PreviewFileName;
 }
 
 type PictureDirectory struct {
@@ -23,6 +35,9 @@ type PictureDirectory struct {
 }
 
 var templateDir = flag.String("templatePath", "tmpl/eandersons.net/picturepi/", "directory where template files are stored")
+var staticDir = flag.String("staticPath", "static/", "directory where static files are stored")
+var closureDir = flag.String("closurePath", "closure-library", "directory where closure library is found")
+var imageDir = flag.String("photoPath", "~/pictures", "directory where image files are found")
 
 func picpage(path string, w io.Writer) {
 	templates, err := template.ParseGlob(*templateDir + "html/*.html")
@@ -51,15 +66,18 @@ func picpage(path string, w io.Writer) {
 }
 
 func HelloServer(w http.ResponseWriter, req *http.Request) {
-	picpage(flag.Arg(0), w)
+	picpage(*imageDir, w)
 }
 
 func main() {
 	flag.Parse()
-	fmt.Println(flag.Arg(0))
+	fmt.Println(*imageDir)
 	fmt.Println(*templateDir)
+	fmt.Println(*closureDir)
 	http.HandleFunc("/", HelloServer)
-	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir(flag.Arg(0)))))
+	http.Handle(ImagePath, http.StripPrefix(ImagePath, http.FileServer(http.Dir(*imageDir))))
+	http.Handle(ClosurePath, http.StripPrefix(ClosurePath, http.FileServer(http.Dir(*closureDir))))
+	http.Handle(StaticPath, http.StripPrefix(StaticPath, http.FileServer(http.Dir(*staticDir))))
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)

@@ -1,9 +1,23 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <script src="closure-library/closure/goog/base.js"></script>
+    <script src="static/js/pictures.js"></script>
   </head>
   <body>
     <h1>{{.Name}} ({{len .Pictures}})</h1>
-    {{ template "picture_set.html" .Pictures }}
+    <div id="photos"></div>
+    <script>
+      function main() {
+      var pictureData = [
+      {{ range .Pictures }}
+        {'fullURL': '{{.RawFileURL}}', 'previewURL': '{{.PreviewFileURL}}'},
+      {{ end }}
+      ];
+      var pictureGridElement = document.getElementById('photos');
+      var pictures = picturepi.pictures.makePictures(pictureData, pictureGridElement);
+      }
+      main();
+    </script>
   </body>
 </html>
