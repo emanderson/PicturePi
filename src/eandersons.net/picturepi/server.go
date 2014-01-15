@@ -76,12 +76,12 @@ func piczip(path string, w io.Writer) {
 			fh.Method = zip.Store
 			f, err := z.CreateHeader(fh)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal("Create error", err)
 			} 
 			p, _ := os.Open(path + picFile.Name())
 			_, err = io.Copy(f, p)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal("Copy file error", err)
 			}
 			p.Close()
 		}
@@ -89,7 +89,7 @@ func piczip(path string, w io.Writer) {
 
 	err := z.Close()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Zip close error", err)
 	}
 
 }
