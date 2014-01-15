@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"html/template"
+	"archive/zip"
 )
 
 const ImagePath = "/images/";
@@ -65,8 +66,40 @@ func picpage(path string, w io.Writer) {
 	t.Execute(w, picDir)
 }
 
+func piczip(path string, w io.Writer) {
+	z := zip.NewWriter(w)
+	dir, _ := os.Open(path)
+	picFiles, _ := dir.Readdir(0)
+	for _, picFile := range picFiles {
+		if strings.HasSuffix(picFile.Name(), ".CR2") {
+			fh, err := zip.FileInfoHeader(picFile)
+			fh.Method = zip.Store
+			f, err := z.CreateHeader(fh)
+			if err != nil {
+				log.Fatal(err)
+			} 
+			p, _ := os.Open(path + picFile.Name())
+			_, err = io.Copy(f, p)
+			if err != nil {
+				log.Fatal(err)
+			}
+			p.Close()
+		}
+	}
+
+	err := z.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
 func HelloServer(w http.ResponseWriter, req *http.Request) {
-	picpage(*imageDir, w)
+	if req.URL.Path == "/zip" {
+		piczip(*imageDir, w)
+	} else {
+		picpage(*imageDir, w)
+	}
 }
 
 func main() {
