@@ -11,6 +11,7 @@ import (
 	"strings"
 	"html/template"
 	"archive/zip"
+	"path"
 )
 
 const ImagePath = "/images/";
@@ -40,7 +41,7 @@ var staticDir = flag.String("staticPath", "static/", "directory where static fil
 var closureDir = flag.String("closurePath", "closure-library", "directory where closure library is found")
 var imageDir = flag.String("photoPath", "~/pictures", "directory where image files are found")
 
-func picpage(path string, w io.Writer) {
+func picpage(picPath string, w io.Writer) {
 	templates, err := template.ParseGlob(*templateDir + "html/*.html")
 	if err != nil {
 		log.Fatal("Error loading templates: ", err)
@@ -49,7 +50,7 @@ func picpage(path string, w io.Writer) {
 		fmt.Println(t.Name())
 	}
 
-	dir, _ := os.Open(path)
+	dir, _ := os.Open(picPath)
 	picFileNames, _ := dir.Readdirnames(0)
 	sort.Strings(picFileNames)
 	pictures := []Picture{}
@@ -66,9 +67,9 @@ func picpage(path string, w io.Writer) {
 	t.Execute(w, picDir)
 }
 
-func piczip(path string, w io.Writer) {
+func piczip(picPath string, w io.Writer) {
 	z := zip.NewWriter(w)
-	dir, _ := os.Open(path)
+	dir, _ := os.Open(picPath)
 	picFiles, _ := dir.Readdir(0)
 	for _, picFile := range picFiles {
 		if strings.HasSuffix(picFile.Name(), ".CR2") {
@@ -78,7 +79,7 @@ func piczip(path string, w io.Writer) {
 			if err != nil {
 				log.Fatal("Create error", err)
 			} 
-			p, _ := os.Open(path + picFile.Name())
+			p, _ := os.Open(path.Join(picPath, picFile.Name()))
 			_, err = io.Copy(f, p)
 			if err != nil {
 				log.Fatal("Copy file error", err)
