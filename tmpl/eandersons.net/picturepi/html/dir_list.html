@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="closure-library/closure/goog/base.js"></script>
+  </head>
+  <body>
+    <h1>Picture Directories</h1>
+    
+    {{ range .DirNames }}
+    <p><a href="/?path={{ . }}">{{ . }}</a></p>
+    {{ end }}
+  </body>
+</html>

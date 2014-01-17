@@ -42,13 +42,17 @@ type PictureDirectory struct {
 	Pictures []Picture
 }
 
-func picturePage(picPath string, w io.Writer) {
+type DirectoryList struct {
+	DirNames []string
+}
+
+func picturePage(basePath string, picPath string, w io.Writer) {
 	templates, err := template.ParseGlob(*templatePath + "html/*.html")
 	if err != nil {
 		log.Fatal("picturePage: Error loading templates: ", err)
 	}
 
-	dir, _ := os.Open(picPath)
+	dir, _ := os.Open(path.Join(basePath, picPath))
 	picFileNames, _ := dir.Readdirnames(0)
 	sort.Strings(picFileNames)
 	pictures := []Picture{}
@@ -58,15 +62,15 @@ func picturePage(picPath string, w io.Writer) {
 		}
 	}
 
-	picDir := PictureDirectory{dir.Name(), pictures}
+	picDir := PictureDirectory{picPath, pictures}
 
 	t := templates.Lookup("picture_grid.html")
 	t.Execute(w, picDir)
 }
 
-func zipAll(picPath string, w io.Writer) {
+func zipAll(basePath string, picPath string, w io.Writer) {
 	z := zip.NewWriter(w)
-	dir, _ := os.Open(picPath)
+	dir, _ := os.Open(path.Join(basePath, picPath))
 	picFiles, _ := dir.Readdir(0)
 	for _, picFile := range picFiles {
 		if strings.HasSuffix(picFile.Name(), ".CR2") {
@@ -76,7 +80,7 @@ func zipAll(picPath string, w io.Writer) {
 			if err != nil {
 				log.Fatal("zipAll: error creating file writer: ", err)
 			} 
-			p, _ := os.Open(path.Join(picPath, picFile.Name()))
+			p, _ := os.Open(path.Join(path.Join(basePath, picPath), picFile.Name()))
 			_, err = io.Copy(f, p)
 			if err != nil {
 				log.Fatal("zipAll: error copying file: ", err)
@@ -92,11 +96,49 @@ func zipAll(picPath string, w io.Writer) {
 
 }
 
+func listDirs(dirName string, prefix string, basePath string) []string {
+	dirStrings := []string{}
+
+	dir, _ := os.Open(path.Join(path.Join(basePath, prefix), dirName))
+	files, _ := dir.Readdir(0)
+	for _, file := range files {
+		if file.IsDir() {
+			fmt.Println(file.Name())
+			subDirStrings := listDirs(file.Name(), path.Join(prefix, dirName), basePath)
+			fmt.Println(len(subDirStrings))
+			for _, subDir := range subDirStrings {
+				fmt.Println(path.Join(dirName, subDir))
+				dirStrings = append(dirStrings, path.Join(file.Name(), subDir))
+			} 
+			if len(subDirStrings) == 0 {
+				dirStrings = append(dirStrings, file.Name())
+			}
+		}
+	}
+	return dirStrings
+}
+
+func listDirectories(picPath string, w io.Writer) {
+	templates, err := template.ParseGlob(*templatePath + "html/*.html")
+	if err != nil {
+		log.Fatal("picturePage: Error loading templates: ", err)
+	}
+
+	dirNames := listDirs(".", "", picPath)
+
+	picDir := DirectoryList{dirNames}
+
+	t := templates.Lookup("dir_list.html")
+	t.Execute(w, picDir)
+}
+
 func PicturePiServer(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/zip" {
-		zipAll(*imagePath, w)
+		zipAll(*imagePath, req.URL.Query().Get("path"), w)
+	} else if req.URL.Path == "/list" {
+		listDirectories(*imagePath, w)
 	} else {
-		picturePage(*imagePath, w)
+		picturePage(*imagePath, req.URL.Query().Get("path"), w)
 	}
 }
 
