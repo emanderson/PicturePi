@@ -106,14 +106,12 @@ func zipSelected(basePath string, picPath string, fileNames []string, w http.Res
 	for _, name := range fileNames {
 		fileMap[name] = true
 	}
-	fmt.Println("%v", fileMap)
 	h := w.Header()
 	h.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"selectedPhotos-%s.zip\"", picPath));
 	z := zip.NewWriter(w)
 	dir, _ := os.Open(path.Join(basePath, picPath))
 	picFiles, _ := dir.Readdir(0)
 	for _, picFile := range picFiles {
-		fmt.Printf("%s: %v\n", picFile.Name(), fileMap[picFile.Name()])
 		if fileMap[picFile.Name()] {
 			fh, err := zip.FileInfoHeader(picFile)
 			fh.Method = zip.Store
