@@ -58,6 +58,8 @@ picturepi.pictures.Picture.prototype.toggleSelected = function() {
 picturepi.pictures.Picture.prototype.makePictureDom = function() {
     this.imageElement = goog.dom.createDom('img', {'src': this.previewURL, 'width': 160, 'height': 120});
     this.divElement = goog.dom.createDom('div', {'class': 'thumbnail'}, this.imageElement);
+    this.fileNameElement = goog.dom.createDom('span', {'class': 'fileName'}, this.fileName);
+    goog.dom.appendChild(this.divElement, this.fileNameElement);
     goog.dom.appendChild(this.parent, this.divElement);
     goog.events.listen(this.divElement, goog.events.EventType.CLICK, this.toggleSelected, false, this);
 };
