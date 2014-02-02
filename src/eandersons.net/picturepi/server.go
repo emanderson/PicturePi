@@ -103,11 +103,8 @@ func listDirs(dirName string, prefix string, basePath string) []string {
 	files, _ := dir.Readdir(0)
 	for _, file := range files {
 		if file.IsDir() {
-			fmt.Println(file.Name())
 			subDirStrings := listDirs(file.Name(), path.Join(prefix, dirName), basePath)
-			fmt.Println(len(subDirStrings))
 			for _, subDir := range subDirStrings {
-				fmt.Println(path.Join(dirName, subDir))
 				dirStrings = append(dirStrings, path.Join(file.Name(), subDir))
 			} 
 			if len(subDirStrings) == 0 {
@@ -135,9 +132,9 @@ func listDirectories(picPath string, w io.Writer) {
 func PicturePiServer(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/zip" {
 		zipAll(*imagePath, req.URL.Query().Get("path"), w)
-	} else if req.URL.Path == "/list" {
+	} else if req.URL.Path == "/list" || req.URL.Path == "/" {
 		listDirectories(*imagePath, w)
-	} else {
+	} else if req.URL.Path == "/dir" {
 		picturePage(*imagePath, req.URL.Query().Get("path"), w)
 	}
 }
