@@ -176,8 +176,8 @@ func PicturePiServer(w http.ResponseWriter, req *http.Request) {
 		zipSelected(*imagePath, req.Form.Get("path"), req.Form["selectedFiles"], w);
 	} else if req.URL.Path == "/list" || req.URL.Path == "/" {
 		listDirectories(*imagePath, w)
-	} else if req.URL.Path == "/dir" {
-		picturePage(*imagePath, req.URL.Query().Get("path"), w)
+	} else if strings.HasPrefix(req.URL.Path, "/photos/") {
+		picturePage(*imagePath, req.URL.Path[len("/photos/"):], w)
 	}
 }
 
