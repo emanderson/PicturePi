@@ -7,13 +7,13 @@
   </head>
   <body>
     <h1>{{.Name}} ({{len .Pictures}})</h1>
-    <a href="/zip?path={{.Name}}">Download Zip</a>
+    <a href="/zip?path={{.Name}}">Download Zip</a><a href="/zipSelected" id="zipSelectedLink">Download Selected</a>
     <div id="photos"></div>
     <script>
       function main() {
       var pictureData = [
       {{ range .Pictures }}
-        {'fullURL': '{{.RawFileURL}}', 'previewURL': '{{.PreviewFileURL}}', 'fileName': '{{.RelativeFileName}}'},
+        {'fullURL': '{{.RawFileURL}}', 'previewURL': '{{.PreviewFileURL}}', 'fileName': '{{.RelativeFileName}}', 'parentDir': '{{.ParentDir}}'},
       {{ end }}
       ];
       var pictureGridElement = document.getElementById('photos');

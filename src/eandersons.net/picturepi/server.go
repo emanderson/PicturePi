@@ -28,6 +28,7 @@ type Picture struct {
 	RawFileName string
 	PreviewFileName string
 	RelativeFileName string
+	ParentDir string
 }
 
 func (p *Picture) PreviewFileURL() string {
@@ -59,7 +60,7 @@ func picturePage(basePath string, picPath string, w io.Writer) {
 	pictures := []Picture{}
 	for _, picFileName := range picFileNames {
 		if strings.HasSuffix(picFileName, ".CR2") {
-			pictures = append(pictures, Picture{path.Join(picPath, picFileName), path.Join(picPath, fmt.Sprintf("%v-preview1.jpg", picFileName[0:len(picFileName)-4])), picFileName})
+			pictures = append(pictures, Picture{path.Join(picPath, picFileName), path.Join(picPath, fmt.Sprintf("%v-preview1.jpg", picFileName[0:len(picFileName)-4])), picFileName, picPath})
 		}
 	}
 
@@ -95,6 +96,43 @@ func zipAll(basePath string, picPath string, w http.ResponseWriter) {
 	err := z.Close()
 	if err != nil {
 		log.Fatal("zipAll: error closing zip file: ", err)
+	}
+
+}
+
+// TODO: share common functionality with zipAll in a helper
+func zipSelected(basePath string, picPath string, fileNames []string, w http.ResponseWriter) {
+	fileMap := make(map[string]bool)
+	for _, name := range fileNames {
+		fileMap[name] = true
+	}
+	fmt.Println("%v", fileMap)
+	h := w.Header()
+	h.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"selectedPhotos-%s.zip\"", picPath));
+	z := zip.NewWriter(w)
+	dir, _ := os.Open(path.Join(basePath, picPath))
+	picFiles, _ := dir.Readdir(0)
+	for _, picFile := range picFiles {
+		fmt.Printf("%s: %v\n", picFile.Name(), fileMap[picFile.Name()])
+		if fileMap[picFile.Name()] {
+			fh, err := zip.FileInfoHeader(picFile)
+			fh.Method = zip.Store
+			f, err := z.CreateHeader(fh)
+			if err != nil {
+				log.Fatal("zipSelected: error creating file writer: ", err)
+			} 
+			p, _ := os.Open(path.Join(path.Join(basePath, picPath), picFile.Name()))
+			_, err = io.Copy(f, p)
+			if err != nil {
+				log.Fatal("zipSelected: error copying file: ", err)
+			}
+			p.Close()
+		}
+	}
+
+	err := z.Close()
+	if err != nil {
+		log.Fatal("zipSelected: error closing zip file: ", err)
 	}
 
 }
@@ -136,7 +174,8 @@ func PicturePiServer(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/zip" {
 		zipAll(*imagePath, req.URL.Query().Get("path"), w)
 	} else if req.URL.Path == "/zipSelected" {
-		// TODO: add processing for this
+		req.ParseForm()
+		zipSelected(*imagePath, req.Form.Get("path"), req.Form["selectedFiles"], w);
 	} else if req.URL.Path == "/list" || req.URL.Path == "/" {
 		listDirectories(*imagePath, w)
 	} else if req.URL.Path == "/dir" {
