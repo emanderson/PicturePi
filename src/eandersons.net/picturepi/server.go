@@ -68,7 +68,9 @@ func picturePage(basePath string, picPath string, w io.Writer) {
 	t.Execute(w, picDir)
 }
 
-func zipAll(basePath string, picPath string, w io.Writer) {
+func zipAll(basePath string, picPath string, w http.ResponseWriter) {
+	h := w.Header()
+	h.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"photos-%s.zip\"", picPath));
 	z := zip.NewWriter(w)
 	dir, _ := os.Open(path.Join(basePath, picPath))
 	picFiles, _ := dir.Readdir(0)
