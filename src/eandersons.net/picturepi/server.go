@@ -27,6 +27,7 @@ const StaticPath = "/static/";
 type Picture struct {
 	RawFileName string
 	PreviewFileName string
+	RelativeFileName string
 }
 
 func (p *Picture) PreviewFileURL() string {
@@ -58,7 +59,7 @@ func picturePage(basePath string, picPath string, w io.Writer) {
 	pictures := []Picture{}
 	for _, picFileName := range picFileNames {
 		if strings.HasSuffix(picFileName, ".CR2") {
-			pictures = append(pictures, Picture{path.Join(picPath, picFileName), path.Join(picPath, fmt.Sprintf("%v-preview1.jpg", picFileName[0:len(picFileName)-4]))})
+			pictures = append(pictures, Picture{path.Join(picPath, picFileName), path.Join(picPath, fmt.Sprintf("%v-preview1.jpg", picFileName[0:len(picFileName)-4])), picFileName})
 		}
 	}
 
@@ -134,6 +135,8 @@ func listDirectories(picPath string, w io.Writer) {
 func PicturePiServer(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/zip" {
 		zipAll(*imagePath, req.URL.Query().Get("path"), w)
+	} else if req.URL.Path == "/zipSelected" {
+		// TODO: add processing for this
 	} else if req.URL.Path == "/list" || req.URL.Path == "/" {
 		listDirectories(*imagePath, w)
 	} else if req.URL.Path == "/dir" {
