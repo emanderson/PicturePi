@@ -8,3 +8,4 @@ div.thumbnail img { display: block; }
 div.thumbnail span.fileName { display: none; }
 div.thumbnail:hover span.fileName { display: inline; position: absolute; top: 5px; left: 5px; color: #FFFFFF; background: rgba(0,0,0,0.6); }
 div.thumbnailSelected { border: 5px solid #FF6600; }
+div.thumbnail span.fileName a { color: #FFFFFF; text-decoration: none; }
