@@ -32,7 +32,7 @@ picturepi.pictures.logSelected = function(event) {
 	    'selectedFiles': selectedFiles
 	};
 	var post = new goog.ui.FormPost();
-	post.post(formData, 'zipSelected');
+	post.post(formData, '/zipSelected');
     }
 }
 
