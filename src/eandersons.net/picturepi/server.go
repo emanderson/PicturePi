@@ -59,7 +59,7 @@ func picturePage(basePath string, picPath string, w io.Writer) {
 	sort.Strings(picFileNames)
 	pictures := []Picture{}
 	for _, picFileName := range picFileNames {
-		if strings.HasSuffix(picFileName, ".CR2") {
+		if strings.HasSuffix(picFileName, ".CR2") || strings.HasSuffix(picFileName, ".JPG") {
 			pictures = append(pictures, Picture{path.Join(picPath, picFileName), path.Join(picPath, fmt.Sprintf("%v-preview1.jpg", picFileName[0:len(picFileName)-4])), picFileName, picPath})
 		}
 	}
@@ -77,7 +77,7 @@ func zipAll(basePath string, picPath string, w http.ResponseWriter) {
 	dir, _ := os.Open(path.Join(basePath, picPath))
 	picFiles, _ := dir.Readdir(0)
 	for _, picFile := range picFiles {
-		if strings.HasSuffix(picFile.Name(), ".CR2") {
+		if strings.HasSuffix(picFile.Name(), ".CR2") || strings.HasSuffix(picFileName, ".JPG") {
 			fh, err := zip.FileInfoHeader(picFile)
 			fh.Method = zip.Store
 			f, err := z.CreateHeader(fh)
