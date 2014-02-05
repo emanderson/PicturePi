@@ -141,7 +141,7 @@ func listDirs(dirName string, prefix string, basePath string) []string {
 	dir, _ := os.Open(path.Join(path.Join(basePath, prefix), dirName))
 	files, _ := dir.Readdir(0)
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
 			subDirStrings := listDirs(file.Name(), path.Join(prefix, dirName), basePath)
 			for _, subDir := range subDirStrings {
 				dirStrings = append(dirStrings, path.Join(file.Name(), subDir))
