@@ -77,7 +77,7 @@ func zipAll(basePath string, picPath string, w http.ResponseWriter) {
 	dir, _ := os.Open(path.Join(basePath, picPath))
 	picFiles, _ := dir.Readdir(0)
 	for _, picFile := range picFiles {
-		if strings.HasSuffix(picFile.Name(), ".CR2") || strings.HasSuffix(picFileName, ".JPG") {
+		if strings.HasSuffix(picFile.Name(), ".CR2") || strings.HasSuffix(picFile.Name(), ".JPG") {
 			fh, err := zip.FileInfoHeader(picFile)
 			fh.Method = zip.Store
 			f, err := z.CreateHeader(fh)
