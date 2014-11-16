@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -54,8 +55,15 @@ func picturePage(basePath string, picPath string, w io.Writer) {
 		log.Fatal("picturePage: Error loading templates: ", err)
 	}
 
-	dir, _ := os.Open(path.Join(basePath, picPath))
-	picFileNames, _ := dir.Readdirnames(0)
+	dirPath := path.Join(basePath, picPath)
+	dir, err := os.Open(dirPath)
+	if err != nil {
+		log.Fatalf("Unable to open %s: %v", dirPath, err)
+	}
+	picFileNames, err := dir.Readdirnames(-1)
+	if err != nil {
+		log.Fatalf("Unable to read names from %s(%v): %v", dirPath, *dir, err)
+	}
 	sort.Strings(picFileNames)
 	pictures := []Picture{}
 	for _, picFileName := range picFileNames {
@@ -138,9 +146,20 @@ func zipSelected(basePath string, picPath string, fileNames []string, w http.Res
 func listDirs(dirName string, prefix string, basePath string) []string {
 	dirStrings := []string{}
 
-	dir, _ := os.Open(path.Join(path.Join(basePath, prefix), dirName))
-	files, _ := dir.Readdir(0)
+	dirPath := path.Join(path.Join(basePath, prefix), dirName)
+	files, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		log.Printf("Found %v(%v)", files, err)
+	}
 	for _, file := range files {
+		if (file.Mode() & os.ModeSymlink) == os.ModeSymlink {
+			filename := path.Join(dirPath, file.Name())
+			file, err = os.Stat(filename)
+			if err != nil {
+				log.Printf("Failed to read %s: %v", filename, err)
+				continue
+			}
+		}
 		if file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
 			subDirStrings := listDirs(file.Name(), path.Join(prefix, dirName), basePath)
 			for _, subDir := range subDirStrings {
