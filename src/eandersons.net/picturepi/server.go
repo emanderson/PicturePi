@@ -15,33 +15,42 @@ import (
 	"strings"
 )
 
-var closurePath = flag.String("closurePath", "closure-library", "directory where closure library is found")
-var imagePath = flag.String("photoPath", "~/pictures", "directory where image files are found")
-var port = flag.String("port", "8080", "port to serve on")
-var staticPath = flag.String("staticPath", "static/", "directory where static files are stored")
-var templatePath = flag.String("templatePath", "tmpl/eandersons.net/picturepi/", "directory where template files are stored")
+var closurePath = flag.String(
+	"closurePath", "closure-library",
+	"directory where closure library is found")
+var imagePath = flag.String(
+	"photoPath", "~/pictures",
+	"directory where image files are found")
+var port = flag.String(
+	"port", "8080", "port to serve on")
+var staticPath = flag.String(
+	"staticPath", "static/",
+	"directory where static files are stored")
+var templatePath = flag.String(
+	"templatePath", "tmpl/eandersons.net/picturepi/",
+	"directory where template files are stored")
 
-const ClosurePath = "/closure-library/";
-const ImagePath = "/images/";
-const StaticPath = "/static/";
+const ClosurePath = "/closure-library/"
+const ImagePath = "/images/"
+const StaticPath = "/static/"
 
 type Picture struct {
-	RawFileName string
-	PreviewFileName string
+	RawFileName      string
+	PreviewFileName  string
 	RelativeFileName string
-	ParentDir string
+	ParentDir        string
 }
 
 func (p *Picture) PreviewFileURL() string {
-	return ImagePath + p.PreviewFileName;
+	return ImagePath + p.PreviewFileName
 }
 
 func (p *Picture) RawFileURL() string {
-	return ImagePath + p.RawFileName;
+	return ImagePath + p.RawFileName
 }
 
 type PictureDirectory struct {
-	Name string
+	Name     string
 	Pictures []Picture
 }
 
@@ -49,8 +58,14 @@ type DirectoryList struct {
 	DirNames []string
 }
 
+func IsPictureFile(fileName string) bool {
+	return (strings.HasSuffix(fileName, ".CR2") ||
+		strings.HasSuffix(fileName, ".JPG") ||
+		strings.HasSuffix(fileName, ".MOV"))
+}
+
 func picturePage(basePath string, picPath string, w io.Writer) {
-	templates, err := template.ParseGlob(*templatePath + "html/*.html")
+	templates, err := template.ParseGlob(*templatePath + "html/" + "*.html")
 	if err != nil {
 		log.Fatal("picturePage: Error loading templates: ", err)
 	}
@@ -67,8 +82,11 @@ func picturePage(basePath string, picPath string, w io.Writer) {
 	sort.Strings(picFileNames)
 	pictures := []Picture{}
 	for _, picFileName := range picFileNames {
-		if strings.HasSuffix(picFileName, ".CR2") || strings.HasSuffix(picFileName, ".JPG") || strings.HasSuffix(picFileName, ".MOV") {
-			pictures = append(pictures, Picture{path.Join(picPath, picFileName), path.Join(picPath, fmt.Sprintf("%v-preview1.jpg", picFileName[0:len(picFileName)-4])), picFileName, picPath})
+		if IsPictureFile(picFileName) {
+			pictures = append(pictures,
+				Picture{path.Join(picPath, picFileName),
+					path.Join(picPath, fmt.Sprintf("%v-preview1.jpg", picFileName[0:len(picFileName)-4])),
+					picFileName, picPath})
 		}
 	}
 
@@ -79,68 +97,50 @@ func picturePage(basePath string, picPath string, w io.Writer) {
 }
 
 func zipAll(basePath string, picPath string, w http.ResponseWriter) {
-	h := w.Header()
-	h.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"photos-%s.zip\"", picPath));
-	z := zip.NewWriter(w)
-	dir, _ := os.Open(path.Join(basePath, picPath))
-	picFiles, _ := dir.Readdir(0)
-	for _, picFile := range picFiles {
-		if strings.HasSuffix(picFile.Name(), ".CR2") || strings.HasSuffix(picFile.Name(), ".JPG") || strings.HasSuffix(picFile.Name(), ".MOV") {
-			fh, err := zip.FileInfoHeader(picFile)
-			fh.Method = zip.Store
-			f, err := z.CreateHeader(fh)
-			if err != nil {
-				log.Fatal("zipAll: error creating file writer: ", err)
-			} 
-			p, _ := os.Open(path.Join(path.Join(basePath, picPath), picFile.Name()))
-			_, err = io.Copy(f, p)
-			if err != nil {
-				log.Fatal("zipAll: error copying file: ", err)
-			}
-			p.Close()
-		}
-	}
-
-	err := z.Close()
-	if err != nil {
-		log.Fatal("zipAll: error closing zip file: ", err)
-	}
-
+	zipBase(basePath, picPath, w, IsPictureFile)
 }
 
-// TODO: share common functionality with zipAll in a helper
 func zipSelected(basePath string, picPath string, fileNames []string, w http.ResponseWriter) {
 	fileMap := make(map[string]bool)
 	for _, name := range fileNames {
 		fileMap[name] = true
 	}
+	zipBase(basePath, picPath, w, func(fileName string) bool {
+		return fileMap[fileName]
+	})
+}
+
+func zipBase(basePath string, picPath string, w http.ResponseWriter, acceptor func(string) bool) {
 	h := w.Header()
-	h.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"selectedPhotos-%s.zip\"", picPath));
+	h.Set("Content-Disposition",
+		fmt.Sprintf("attachment; filename=\"photos-%s.zip\"", picPath))
 	z := zip.NewWriter(w)
-	dir, _ := os.Open(path.Join(basePath, picPath))
-	picFiles, _ := dir.Readdir(0)
-	for _, picFile := range picFiles {
-		if fileMap[picFile.Name()] {
-			fh, err := zip.FileInfoHeader(picFile)
+	dirPath := path.Join(basePath, picPath)
+	files, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		log.Printf("Found %v(%v)", files, err)
+	}
+	for _, fileInfo := range files {
+		if acceptor(fileInfo.Name()) {
+			fh, err := zip.FileInfoHeader(fileInfo)
 			fh.Method = zip.Store
 			f, err := z.CreateHeader(fh)
 			if err != nil {
-				log.Fatal("zipSelected: error creating file writer: ", err)
-			} 
-			p, _ := os.Open(path.Join(path.Join(basePath, picPath), picFile.Name()))
+				log.Fatal("zip: error creating file writer: ", err)
+			}
+			p, _ := os.Open(path.Join(path.Join(basePath, picPath), fileInfo.Name()))
 			_, err = io.Copy(f, p)
 			if err != nil {
-				log.Fatal("zipSelected: error copying file: ", err)
+				log.Fatal("zip: error copying file: ", err)
 			}
 			p.Close()
 		}
 	}
 
-	err := z.Close()
+	err = z.Close()
 	if err != nil {
-		log.Fatal("zipSelected: error closing zip file: ", err)
+		log.Fatal("zip: error closing zip file: ", err)
 	}
-
 }
 
 func listDirs(dirName string, prefix string, basePath string) []string {
@@ -164,7 +164,7 @@ func listDirs(dirName string, prefix string, basePath string) []string {
 			subDirStrings := listDirs(file.Name(), path.Join(prefix, dirName), basePath)
 			for _, subDir := range subDirStrings {
 				dirStrings = append(dirStrings, path.Join(file.Name(), subDir))
-			} 
+			}
 			if len(subDirStrings) == 0 {
 				dirStrings = append(dirStrings, file.Name())
 			}
@@ -192,7 +192,7 @@ func PicturePiServer(w http.ResponseWriter, req *http.Request) {
 		zipAll(*imagePath, req.URL.Query().Get("path"), w)
 	} else if req.URL.Path == "/zipSelected" {
 		req.ParseForm()
-		zipSelected(*imagePath, req.Form.Get("path"), req.Form["selectedFiles"], w);
+		zipSelected(*imagePath, req.Form.Get("path"), req.Form["selectedFiles"], w)
 	} else if req.URL.Path == "/list" || req.URL.Path == "/" {
 		listDirectories(*imagePath, w)
 	} else if strings.HasPrefix(req.URL.Path, "/photos/") {
@@ -208,7 +208,7 @@ func main() {
 	http.Handle(ClosurePath, http.StripPrefix(ClosurePath, http.FileServer(http.Dir(*closurePath))))
 	http.Handle(StaticPath, http.StripPrefix(StaticPath, http.FileServer(http.Dir(*staticPath))))
 
-	err := http.ListenAndServe(":" + *port, nil)
+	err := http.ListenAndServe(":"+*port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
